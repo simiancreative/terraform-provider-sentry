@@ -2,6 +2,7 @@ package sentry
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -235,9 +236,18 @@ func resourceSentryIssueAlertRead(ctx context.Context, d *schema.ResourceData, m
 		filters = append(filters, *filter)
 	}
 
-	actions := make([]interface{}, 0, len(alert.Actions))
+	formatted := map[string]interface{}{}
 	for _, action := range alert.Actions {
-		actions = append(actions, *action)
+		for k, v := range *action {
+			_, ok := v.(map[string]interface{})
+			if ok {
+				value, _ := json.Marshal(v)
+				formatted[k] = string(value)
+				continue
+			}
+
+			formatted[k] = v
+		}
 	}
 
 	d.SetId(buildThreePartID(org, project, sentry.StringValue(alert.ID)))
@@ -247,7 +257,7 @@ func resourceSentryIssueAlertRead(ctx context.Context, d *schema.ResourceData, m
 		d.Set("name", alert.Name),
 		d.Set("conditions", conditions),
 		d.Set("filters", filters),
-		// d.Set("actions", actions),
+		d.Set("actions", formatted),
 		d.Set("action_match", alert.ActionMatch),
 		d.Set("filter_match", alert.FilterMatch),
 		d.Set("frequency", alert.Frequency),
