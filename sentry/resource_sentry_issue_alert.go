@@ -239,9 +239,10 @@ func resourceSentryIssueAlertRead(ctx context.Context, d *schema.ResourceData, m
 	actions := make([]interface{}, 0, len(alert.Actions))
 	for _, action := range alert.Actions {
 		formatted := map[string]interface{}{}
+
 		for k, v := range *action {
-			_, ok := v.(map[string]interface{})
-			if ok {
+			_, ok := v.(string)
+			if !ok {
 				value, _ := json.Marshal(v)
 				formatted[k] = string(value)
 				continue
