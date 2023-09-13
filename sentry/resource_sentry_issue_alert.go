@@ -236,8 +236,9 @@ func resourceSentryIssueAlertRead(ctx context.Context, d *schema.ResourceData, m
 		filters = append(filters, *filter)
 	}
 
-	formatted := map[string]interface{}{}
+	actions := make([]interface{}, 0, len(alert.Actions))
 	for _, action := range alert.Actions {
+		formatted := map[string]interface{}{}
 		for k, v := range *action {
 			_, ok := v.(map[string]interface{})
 			if ok {
@@ -248,6 +249,8 @@ func resourceSentryIssueAlertRead(ctx context.Context, d *schema.ResourceData, m
 
 			formatted[k] = v
 		}
+
+		actions = append(actions, formatted)
 	}
 
 	d.SetId(buildThreePartID(org, project, sentry.StringValue(alert.ID)))
@@ -257,7 +260,7 @@ func resourceSentryIssueAlertRead(ctx context.Context, d *schema.ResourceData, m
 		d.Set("name", alert.Name),
 		d.Set("conditions", conditions),
 		d.Set("filters", filters),
-		d.Set("actions", formatted),
+		d.Set("actions", actions),
 		d.Set("action_match", alert.ActionMatch),
 		d.Set("filter_match", alert.FilterMatch),
 		d.Set("frequency", alert.Frequency),
