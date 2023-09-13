@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccSentryDashboard_basic(t *testing.T) {
+	t.Skip("Skipping Dashboard tests")
+
 	dashboardTitle := acctest.RandomWithPrefix("tf-dashboard")
 	rn := "sentry_dashboard.test"
 

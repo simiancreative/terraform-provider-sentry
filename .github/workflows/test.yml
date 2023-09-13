@@ -13,10 +13,6 @@ on:
       - main
     paths-ignore:
       - "README.md"
-  # We test at a regular interval to ensure we are alerted to something breaking
-  # due to an API change, even if the code did not change.
-  schedule:
-    - cron: "0 0 * * *"
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

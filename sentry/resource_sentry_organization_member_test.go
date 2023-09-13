@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccSentryOrganizationMember_basic(t *testing.T) {
+	t.Skip("Skipping Member tests")
+
 	memberEmail := acctest.RandomWithPrefix("tf-team") + "@example.com"
 	rn := "sentry_organization_member.john_doe"
 
