@@ -131,10 +131,11 @@ func TestAccSentryIssueAlert_basic(t *testing.T) {
 				"targetIdentifier": "",
 			}),
 			resource.TestCheckTypeSetElemNestedAttrs(rn, "actions.*", map[string]string{
-				"id":               "sentry.mail.actions.NotifyEmailAction",
-				"name":             "Send a notification to Team",
-				"targetType":       "Team",
-				"targetIdentifier": "",
+				"id":                  "sentry.mail.actions.NotifyEmailAction",
+				"name":                "Send a notification to Team",
+				"targetType":          "IssueOwners",
+				"targetIdentifier":    "",
+				"dynamic_form_fields": "[{\"choices\":[[\"10032\",\"RA\"]]}]",
 			}),
 			resource.TestCheckTypeSetElemNestedAttrs(rn, "actions.*", map[string]string{
 				"id":   "sentry.rules.actions.notify_event.NotifyEventAction",
@@ -318,7 +319,7 @@ resource "sentry_issue_alert" "test" {
 		{
 			id               = "sentry.mail.actions.NotifyEmailAction"
 			name             = "Send a notification to Team"
-			targetType       = "Team"
+			targetType       = "IssueOwners"
 			dynamic_form_fields = jsonencode([
 				{
 					choices = [
@@ -326,7 +327,7 @@ resource "sentry_issue_alert" "test" {
 					]
 				}
 			])
-			targetIdentifier = sentry_team.test.team_id
+			targetIdentifier = ""
 		},
 		{
 			id   = "sentry.rules.actions.notify_event.NotifyEventAction"

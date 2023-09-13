@@ -3,7 +3,6 @@ package sentry
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/hashicorp/go-multierror"
@@ -166,12 +165,21 @@ func resourceSentryIssueAlertObject(d *schema.ResourceData) *sentry.IssueAlert {
 		alert.Filters = append(alert.Filters, filter)
 	}
 
-	alert.Actions = make([]*sentry.IssueAlertAction, 0, len(actionsIn))
-	for _, ia := range actionsIn {
-		action := new(sentry.IssueAlertAction)
-		mapstructure.WeakDecode(ia, action)
-		fmt.Println(action)
-		alert.Actions = append(alert.Actions, action)
+	for _, action := range actionsIn {
+		formatted := sentry.IssueAlertAction{}
+
+		for k, v := range action.(map[string]interface{}) {
+			var val interface{}
+			err := json.Unmarshal([]byte(v.(string)), &val)
+			if err == nil {
+				formatted[k] = val
+				continue
+			}
+
+			formatted[k] = v
+		}
+
+		alert.Actions = append(alert.Actions, &formatted)
 	}
 
 	if v, ok := d.GetOk("environment"); ok {

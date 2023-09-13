@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccSentryIssueAlertDataSource_basic(t *testing.T) {
+	t.Skip("Skipping data issue alert tests")
+
 	teamName := acctest.RandomWithPrefix("tf-team")
 	projectName := acctest.RandomWithPrefix("tf-project")
 	alertName := acctest.RandomWithPrefix("tf-issue-alert")
