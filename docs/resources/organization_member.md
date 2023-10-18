@@ -19,7 +19,10 @@ resource "sentry_organization_member" "john_doe" {
 
   email = "test@example.com"
   role  = "member"
-  teams = ["my-team"]
+  teams = {
+    "my-team"  = "admin"
+    "my-team2" = "contributor"
+  }
 }
 ```
 
@@ -34,7 +37,7 @@ resource "sentry_organization_member" "john_doe" {
 
 ### Optional
 
-- `teams` (List of String) The teams the organization member should be added to.
+- `teams` (Map of String) Map of the teams with relevant permission that the organization member should be added to.
 
 ### Read-Only
 

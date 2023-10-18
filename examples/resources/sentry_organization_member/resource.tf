@@ -4,5 +4,8 @@ resource "sentry_organization_member" "john_doe" {
 
   email = "test@example.com"
   role  = "member"
-  teams = ["my-team"]
+  teams = {
+    "my-team"  = "admin"
+    "my-team2" = "contributor"
+  }
 }
