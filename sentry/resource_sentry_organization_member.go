@@ -8,7 +8,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/jianyuan/go-sentry/v2/sentry"
+	"github.com/jianyuan/terraform-provider-sentry/api"
 )
 
 func resourceSentryOrganizationMember() *schema.Resource {
@@ -27,11 +29,13 @@ func resourceSentryOrganizationMember() *schema.Resource {
 				Description: "The slug of the organization the user should be invited to.",
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 			},
 			"email": {
 				Description: "The email of the organization member.",
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 			},
 			"role": {
 				Description: "This is the role of the organization member.",
@@ -39,11 +43,13 @@ func resourceSentryOrganizationMember() *schema.Resource {
 				Required:    true,
 			},
 			"teams": {
-				Description: "The teams the organization member should be added to.",
-				Type:        schema.TypeList,
+				Description: "Map of the teams with relevant permission that the organization member should be added to.",
+				Type:        schema.TypeMap,
 				Optional:    true,
 				Elem: &schema.Schema{
-					Type: schema.TypeString,
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringInSlice([]string{"contributor", "admin"}, true),
 				},
 			},
 			"internal_id": {
@@ -75,7 +81,7 @@ func resourceSentryOrganizationMemberCreate(ctx context.Context, d *schema.Resou
 	}
 
 	if v, ok := d.GetOk("teams"); ok {
-		teams := expandStringList(v.([]interface{}))
+		teams, _ := expandTeamsList(v.(map[string]string))
 		if len(teams) > 0 {
 			params.Teams = teams
 		}
@@ -92,13 +98,17 @@ func resourceSentryOrganizationMemberCreate(ctx context.Context, d *schema.Resou
 	}
 
 	d.SetId(buildTwoPartID(org, member.ID))
-	return resourceSentryOrganizationMemberRead(ctx, d, meta)
+
+	return resourceSentryOrganizationMemberUpdate(ctx, d, meta)
 }
 
 func resourceSentryOrganizationMemberRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*sentry.Client)
 
 	org, memberID, err := splitSentryOrganizationMemberID(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	tflog.Debug(ctx, "Reading organization member", map[string]interface{}{
 		"org":      org,
@@ -135,14 +145,15 @@ func resourceSentryOrganizationMemberUpdate(ctx context.Context, d *schema.Resou
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	params := &sentry.UpdateOrganizationMemberParams{
-		Role: d.Get("role").(string),
+	params := &api.OrganizationMemberRole{
+		Role:  d.Get("role").(string),
+		Teams: []api.TeamMemberRole{},
 	}
 
 	if v, ok := d.GetOk("teams"); ok {
-		teams := expandStringList(v.([]interface{}))
+		teams, teamsRole := expandTeamsList(v.(map[string]string))
 		if len(teams) > 0 {
-			params.Teams = teams
+			params.Teams = teamsRole
 		}
 	}
 
@@ -154,7 +165,7 @@ func resourceSentryOrganizationMemberUpdate(ctx context.Context, d *schema.Resou
 		"org":   org,
 	})
 
-	member, _, err := client.OrganizationMembers.Update(ctx, org, memberID, params)
+	member, _, err := api.UpdateMemberRoles(client, ctx, org, memberID, params)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -182,4 +193,19 @@ func resourceSentryOrganizationMemberDelete(ctx context.Context, d *schema.Resou
 func splitSentryOrganizationMemberID(id string) (org string, memberID string, err error) {
 	org, memberID, err = splitTwoPartID(id, "organization-id", "member-id")
 	return
+}
+
+func expandTeamsList(teamRoles map[string]string) ([]string, []api.TeamMemberRole) {
+	teams := []string{}
+	roles := []api.TeamMemberRole{}
+
+	for k, v := range teamRoles {
+		teams = append(teams, k)
+		roles = append(roles, api.TeamMemberRole{
+			Team: k,
+			Role: v,
+		})
+	}
+
+	return teams, roles
 }
